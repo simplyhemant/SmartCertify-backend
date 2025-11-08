@@ -3,6 +3,8 @@ package SmartCertify_backend.SmartCertify_backend.config;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -26,49 +28,55 @@ public class AppConfig {
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
-        http.sessionManagement(management -> management.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(Authorize -> Authorize
-                        .requestMatchers("/auth/google/callback", "/auth/**").permitAll()
-                                .requestMatchers("/admin/**").hasRole("ADMIN")
-                                .requestMatchers("/institution/**").hasAnyRole("INSTITUTION", "ADMIN")
-                                .requestMatchers("/student/**").hasRole("STUDENT")
-
-//                                .requestMatchers("/api/**").authenticated()
-                                .requestMatchers("/api/all/**").permitAll()
-                                .anyRequest().permitAll()
+        http
+                // Stateless sessions (JWT-based)
+                .sessionManagement(management ->
+                        management.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
+                .authorizeHttpRequests(auth -> auth
+
+                        // 🏛 Protected endpoints
+                        .requestMatchers("/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/institution/**").hasAnyRole("ADMIN", "INSTITUTION")
+                        .requestMatchers("/student/**").hasRole("STUDENT")
+
+                        // 🔓 All other endpoints are public
+                        .anyRequest().permitAll()
+                )
+                // Add JWT filter before Basic Auth
                 .addFilterBefore(new JwtTokenValidator(), BasicAuthenticationFilter.class)
+                // Disable CSRF (not needed for JWT)
                 .csrf(csrf -> csrf.disable())
+                // Enable CORS
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()));
-               
-		
-		return http.build();
-		
-	}
-	
-    // CORS Configuration
-    private CorsConfigurationSource corsConfigurationSource() {
-        return new CorsConfigurationSource() {
-            @Override
-            public CorsConfiguration getCorsConfiguration(HttpServletRequest request) {
-                CorsConfiguration cfg = new CorsConfiguration();
-                cfg.setAllowedOrigins(Arrays.asList(
-                        "http://localhost:3000",
-                        "http://localhost:5173"));
-                cfg.setAllowedMethods(Collections.singletonList("*"));
-                cfg.setAllowCredentials(true);
-                cfg.setAllowedHeaders(Collections.singletonList("*"));
-                cfg.setExposedHeaders(Arrays.asList("Authorization"));
-                cfg.setMaxAge(3600L);
-                return cfg;
-            }
-        };
+
+        return http.build();
+    }
+
+
+
+    @Bean
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) throws Exception {
+        return authenticationConfiguration.getAuthenticationManager();
     }
 
     @Bean
-    PasswordEncoder passwordEncoder() {
-		return new BCryptPasswordEncoder();
-	}
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+
+    private CorsConfigurationSource corsConfigurationSource() {
+        return request -> {
+            CorsConfiguration cfg = new CorsConfiguration();
+            cfg.setAllowedOrigins(Arrays.asList("http://localhost:3000", "http://localhost:5173"));
+            cfg.setAllowedMethods(Collections.singletonList("*"));
+            cfg.setAllowCredentials(true);
+            cfg.setAllowedHeaders(Collections.singletonList("*"));
+            cfg.setExposedHeaders(Arrays.asList("Authorization"));
+            cfg.setMaxAge(3600L);
+            return cfg;
+        };
+    }
 
     @Bean
     public RestTemplate restTemplate() {

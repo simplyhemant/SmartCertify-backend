@@ -1,6 +1,6 @@
 package SmartCertify_backend.SmartCertify_backend.entity;
 
-import SmartCertify_backend.SmartCertify_backend.enums.Role;
+import SmartCertify_backend.SmartCertify_backend.enums.UserRole;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
@@ -34,7 +34,7 @@ public class User {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private Role role;  // STUDENT or INSTITUTION (and later ADMIN)
+    private UserRole userRole;  // STUDENT or INSTITUTION (and later ADMIN)
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

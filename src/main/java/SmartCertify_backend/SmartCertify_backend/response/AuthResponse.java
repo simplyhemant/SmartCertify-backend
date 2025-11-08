@@ -1,6 +1,6 @@
 package SmartCertify_backend.SmartCertify_backend.response;
 
-import SmartCertify_backend.SmartCertify_backend.enums.Role;
+import SmartCertify_backend.SmartCertify_backend.enums.UserRole;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -16,5 +16,5 @@ public class AuthResponse {
 	
 	private String message;
 
-	private Role role;
+	private String userRole;
 }

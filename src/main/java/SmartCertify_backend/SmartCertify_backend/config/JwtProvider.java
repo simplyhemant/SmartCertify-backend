@@ -1,5 +1,6 @@
 package SmartCertify_backend.SmartCertify_backend.config;
 
+import SmartCertify_backend.SmartCertify_backend.exception.TokenValidationException;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -37,16 +38,32 @@ private static final long JWT_EXPIRATION_MS = 24 * 60 * 60 * 10000; // 10 day
 		
 	}
 	
-	public String getEmailFromJwtToken(String jwt) {
-		jwt=jwt.substring(7);
-		
-		Claims claims=Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(jwt).getBody();
-		String email=String.valueOf(claims.get("email"));
-		
-		return email;
-	}
-	
-	public String populateAuthorities(Collection<? extends GrantedAuthority> collection) {
+//	public String getEmailFromJwtToken(String jwt) {
+//		jwt=jwt.substring(7);
+//
+//		Claims claims=Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(jwt).getBody();
+//		String email=String.valueOf(claims.get("email"));
+//
+//		return email;
+//	}
+
+    public String getEmailFromJwtToken(String jwt) {
+        if (jwt == null || !jwt.startsWith("Bearer ")) {
+            throw new TokenValidationException("Invalid or missing JWT token.");
+        }
+
+        jwt = jwt.substring(7); // remove "Bearer " prefix
+        Claims claims = Jwts.parserBuilder()
+                .setSigningKey(key)
+                .build()
+                .parseClaimsJws(jwt)
+                .getBody();
+
+        return String.valueOf(claims.get("email"));
+    }
+
+
+    public String populateAuthorities(Collection<? extends GrantedAuthority> collection) {
 		Set<String> auths=new HashSet<>();
 		
 		for(GrantedAuthority authority:collection) {

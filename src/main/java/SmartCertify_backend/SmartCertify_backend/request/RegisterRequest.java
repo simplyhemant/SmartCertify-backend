@@ -1,6 +1,6 @@
 package SmartCertify_backend.SmartCertify_backend.request;
 
-import SmartCertify_backend.SmartCertify_backend.enums.Role;
+import SmartCertify_backend.SmartCertify_backend.enums.UserRole;
 import lombok.Data;
 
 @Data
@@ -11,5 +11,4 @@ public class RegisterRequest {
     private String userName;
     private String instituteName;
     private String password;
-    private Role role;
 }
