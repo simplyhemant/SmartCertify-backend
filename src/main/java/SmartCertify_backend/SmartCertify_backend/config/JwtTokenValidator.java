@@ -1,6 +1,5 @@
 package SmartCertify_backend.SmartCertify_backend.config;
 
-import SmartCertify_backend.SmartCertify_backend.exception.TokenValidationException;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import jakarta.servlet.FilterChain;
@@ -30,7 +29,7 @@ public class JwtTokenValidator extends OncePerRequestFilter {
         String jwt = request.getHeader(JwtConstant.JWT_HEADER);
 
         if (jwt != null && jwt.startsWith("Bearer ")) {
-            jwt = jwt.substring(7); // remove "Bearer " prefix
+            jwt = jwt.substring(7);
 
             try {
                 SecretKey key = Keys.hmacShaKeyFor(JwtConstant.SECRET_KEY.getBytes(StandardCharsets.UTF_8));
@@ -41,31 +40,48 @@ public class JwtTokenValidator extends OncePerRequestFilter {
                         .parseClaimsJws(jwt)
                         .getBody();
 
-                String email = claims.getSubject(); // preferred over custom key "email"
-                String authorities = (String) claims.get("authorities");
+                String email = claims.getSubject();
 
-                if (email == null || authorities == null) {
-                    throw new TokenValidationException("Invalid token: missing claims");
+                if (email == null || email.trim().isEmpty()) {
+                    email = String.valueOf(claims.get("email"));
                 }
 
-                List<GrantedAuthority> auths =
-                        AuthorityUtils.commaSeparatedStringToAuthorityList(authorities);
+                String authorities = (String) claims.get("authorities");
 
-                Authentication authentication =
-                        new UsernamePasswordAuthenticationToken(email, null, auths);
+                if (email == null || email.equals("null") || email.trim().isEmpty()) {
+                    filterChain.doFilter(request, response);
+                    return;
+                }
+
+                List<GrantedAuthority> auths = AuthorityUtils.NO_AUTHORITIES;
+
+                if (authorities != null && !authorities.trim().isEmpty()) {
+                    auths = AuthorityUtils.commaSeparatedStringToAuthorityList(authorities);
+                }
+
+                Authentication authentication = new UsernamePasswordAuthenticationToken(
+                        email,
+                        null,
+                        auths
+                );
 
                 SecurityContextHolder.getContext().setAuthentication(authentication);
 
             } catch (ExpiredJwtException e) {
-                throw new TokenValidationException("Token has expired. Please log in again.");
-            } catch (UnsupportedJwtException e) {
-                throw new TokenValidationException("Unsupported JWT token.");
-            } catch (MalformedJwtException e) {
-                throw new TokenValidationException("Malformed JWT token.");
-            } catch (SignatureException e) {
-                throw new TokenValidationException("Invalid JWT signature.");
-            } catch (IllegalArgumentException e) {
-                throw new TokenValidationException("Empty or null JWT token.");
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.setContentType("application/json");
+                response.getWriter().write(
+                        "{\"error\":\"Unauthorized\",\"message\":\"Token has expired. Please log in again.\"}"
+                );
+                return;
+
+            } catch (UnsupportedJwtException | MalformedJwtException | SignatureException | IllegalArgumentException e) {
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.setContentType("application/json");
+                response.getWriter().write(
+                        "{\"error\":\"Unauthorized\",\"message\":\"Invalid JWT token\"}"
+                );
+                return;
             }
         }
 

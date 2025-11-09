@@ -1,6 +1,5 @@
 package SmartCertify_backend.SmartCertify_backend.config;
 
-import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -29,31 +28,34 @@ public class AppConfig {
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
         http
-                // Stateless sessions (JWT-based)
                 .sessionManagement(management ->
                         management.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
                 .authorizeHttpRequests(auth -> auth
+                        // Public endpoints
+                        .requestMatchers(
+                                "/api/auth/**",
+                                "/api/public/**",
+                                "/error"
+                        ).permitAll()
 
-                        // 🏛 Protected endpoints
+                        // Role-based access
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .requestMatchers("/institution/**").hasAnyRole("ADMIN", "INSTITUTION")
                         .requestMatchers("/student/**").hasRole("STUDENT")
 
-                        // 🔓 All other endpoints are public
-                        .anyRequest().permitAll()
+                        // Protected endpoints (require authentication)
+                        .requestMatchers("/api/certificates/**").authenticated()
+
+                        // All other endpoints require authentication
+                        .anyRequest().authenticated()
                 )
-                // Add JWT filter before Basic Auth
                 .addFilterBefore(new JwtTokenValidator(), BasicAuthenticationFilter.class)
-                // Disable CSRF (not needed for JWT)
                 .csrf(csrf -> csrf.disable())
-                // Enable CORS
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()));
 
         return http.build();
     }
-
-
 
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) throws Exception {
@@ -68,7 +70,11 @@ public class AppConfig {
     private CorsConfigurationSource corsConfigurationSource() {
         return request -> {
             CorsConfiguration cfg = new CorsConfiguration();
-            cfg.setAllowedOrigins(Arrays.asList("http://localhost:3000", "http://localhost:5173"));
+            cfg.setAllowedOrigins(Arrays.asList(
+                    "http://localhost:3000",
+                    "http://localhost:5173",
+                    "http://localhost:4200"
+            ));
             cfg.setAllowedMethods(Collections.singletonList("*"));
             cfg.setAllowCredentials(true);
             cfg.setAllowedHeaders(Collections.singletonList("*"));

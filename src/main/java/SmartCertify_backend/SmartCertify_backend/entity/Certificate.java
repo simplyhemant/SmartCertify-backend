@@ -14,19 +14,15 @@ public class Certificate {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String certificateName;
-    private String certificateCode;  // unique identifier
+    private String fileUrl;
 
-    private String fileUrl; // store file path or cloud URL (e.g., S3, local uploads)
+    private String email;
 
-    private LocalDateTime issuedAt;
-    private LocalDateTime expiryAt;
+    private LocalDateTime uploadedAt;
 
-    @ManyToOne
-    @JoinColumn(name = "user_id")
-    private User user;
+    private Long userId;
 
-    @ManyToOne
-    @JoinColumn(name = "course_id")
-    private Course course;
+//    @ManyToOne
+//    @JoinColumn(name = "course_id")
+//    private Course course;
 }
